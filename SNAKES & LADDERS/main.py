@@ -1,3 +1,4 @@
+import math
 import random
 import tkinter as tk
 from tkinter import messagebox
@@ -43,8 +44,14 @@ class SnakesAndLadders:
         self.info_frame = tk.Frame(root)
         self.info_frame.grid(row=0, column=1, sticky="n", padx=10, pady=10)
 
+        self.player_count = min(len(PLAYER_NAMES), len(PLAYER_COLORS))
+        self.player_names = PLAYER_NAMES[: self.player_count]
+        self.player_colors = PLAYER_COLORS[: self.player_count]
+
         self.turn_label = tk.Label(
-            self.info_frame, text="Turn: Player 1", font=("Arial", 14, "bold")
+            self.info_frame,
+            text=f"Turn: {self.player_names[0]}",
+            font=("Arial", 14, "bold"),
         )
         self.turn_label.pack(pady=5)
 
@@ -70,7 +77,7 @@ class SnakesAndLadders:
         )
         self.reset_button.pack(pady=5)
 
-        self.players = [0, 0]
+        self.players = [0] * self.player_count
         self.current_player = 0
         self.player_tokens = []
         self.pending_steps = 0
@@ -102,8 +109,8 @@ class SnakesAndLadders:
             self.draw_line_between_squares(start, end, color="#2e8b57", width=4)
 
     def draw_players(self):
-        for i in range(len(PLAYER_NAMES)):
-            token = self.canvas.create_oval(0, 0, 0, 0, fill=PLAYER_COLORS[i], outline="")
+        for i in range(self.player_count):
+            token = self.canvas.create_oval(0, 0, 0, 0, fill=self.player_colors[i], outline="")
             self.player_tokens.append(token)
         self.update_player_positions()
 
@@ -125,11 +132,11 @@ class SnakesAndLadders:
         return x1 + self.square_size / 2, y1 + self.square_size / 2
 
     def update_player_positions(self):
-        offsets = [(-10, -10), (10, 10)]
+        offsets = self.player_offsets(self.player_count)
         for i, pos in enumerate(self.players):
             x, y = self.number_to_position(pos if pos > 0 else 1)
             dx, dy = offsets[i]
-            size = 14
+            size = max(8, min(14, int(self.square_size / 3)))
             self.canvas.coords(
                 self.player_tokens[i],
                 x - size + dx,
@@ -137,6 +144,16 @@ class SnakesAndLadders:
                 x + size + dx,
                 y + size + dy,
             )
+
+    def player_offsets(self, count):
+        if count <= 1:
+            return [(0, 0)]
+        radius = min(14, self.square_size / 3)
+        offsets = []
+        for i in range(count):
+            angle = (2 * math.pi * i) / count
+            offsets.append((radius * math.cos(angle), radius * math.sin(angle)))
+        return offsets
 
     def draw_line_between_squares(self, start, end, color, width=3):
         x1, y1 = self.number_to_position(start)
@@ -152,7 +169,7 @@ class SnakesAndLadders:
 
         if new_pos > BOARD_SIZE * BOARD_SIZE:
             self.turn_label.config(
-                text=f"{PLAYER_NAMES[self.current_player]} needs exact roll!"
+                text=f"{self.player_names[self.current_player]} needs exact roll!"
             )
             self.switch_turn()
             return
@@ -186,7 +203,7 @@ class SnakesAndLadders:
         if new_pos == BOARD_SIZE * BOARD_SIZE:
             messagebox.showinfo(
                 "Winner!",
-                f"{PLAYER_NAMES[self.current_player]} wins! 🎉",
+                f"{self.player_names[self.current_player]} wins! 🎉",
             )
             self.roll_button.config(state="disabled")
             self.move_button.config(state="disabled")
@@ -197,15 +214,15 @@ class SnakesAndLadders:
         self.switch_turn()
 
     def switch_turn(self):
-        self.current_player = (self.current_player + 1) % len(PLAYER_NAMES)
-        self.turn_label.config(text=f"Turn: {PLAYER_NAMES[self.current_player]}")
+        self.current_player = (self.current_player + 1) % len(self.player_names)
+        self.turn_label.config(text=f"Turn: {self.player_names[self.current_player]}")
 
     def reset_game(self):
-        self.players = [0, 0]
+        self.players = [0] * self.player_count
         self.current_player = 0
         self.pending_steps = 0
         self.dice_label.config(text="Roll: -")
-        self.turn_label.config(text="Turn: Player 1")
+        self.turn_label.config(text=f"Turn: {self.player_names[0]}")
         self.roll_button.config(state="normal")
         self.move_button.config(state="disabled")
         self.update_player_positions()
