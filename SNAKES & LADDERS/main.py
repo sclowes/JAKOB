@@ -56,6 +56,15 @@ class SnakesAndLadders:
         )
         self.roll_button.pack(pady=10)
 
+        self.move_button = tk.Button(
+            self.info_frame,
+            text="Move",
+            font=("Arial", 12),
+            command=self.move_step,
+            state="disabled",
+        )
+        self.move_button.pack(pady=5)
+
         self.reset_button = tk.Button(
             self.info_frame, text="Reset Game", font=("Arial", 12), command=self.reset_game
         )
@@ -64,6 +73,7 @@ class SnakesAndLadders:
         self.players = [0, 0]
         self.current_player = 0
         self.player_tokens = []
+        self.pending_steps = 0
 
         self.draw_board()
         self.draw_snakes_and_ladders()
@@ -147,13 +157,31 @@ class SnakesAndLadders:
             self.switch_turn()
             return
 
+        self.pending_steps = roll
+        self.roll_button.config(state="disabled")
+        self.move_button.config(state="normal")
+
+    def move_step(self):
+        if self.pending_steps <= 0:
+            return
+
+        current = self.players[self.current_player]
+        new_pos = current + 1
+        self.players[self.current_player] = new_pos
+        self.pending_steps -= 1
+        self.update_player_positions()
+
+        if self.pending_steps > 0:
+            return
+
         if new_pos in SNAKES:
             new_pos = SNAKES[new_pos]
         elif new_pos in LADDERS:
             new_pos = LADDERS[new_pos]
 
-        self.players[self.current_player] = new_pos
-        self.update_player_positions()
+        if new_pos != self.players[self.current_player]:
+            self.players[self.current_player] = new_pos
+            self.update_player_positions()
 
         if new_pos == BOARD_SIZE * BOARD_SIZE:
             messagebox.showinfo(
@@ -161,8 +189,11 @@ class SnakesAndLadders:
                 f"{PLAYER_NAMES[self.current_player]} wins! 🎉",
             )
             self.roll_button.config(state="disabled")
+            self.move_button.config(state="disabled")
             return
 
+        self.move_button.config(state="disabled")
+        self.roll_button.config(state="normal")
         self.switch_turn()
 
     def switch_turn(self):
@@ -172,9 +203,11 @@ class SnakesAndLadders:
     def reset_game(self):
         self.players = [0, 0]
         self.current_player = 0
+        self.pending_steps = 0
         self.dice_label.config(text="Roll: -")
         self.turn_label.config(text="Turn: Player 1")
         self.roll_button.config(state="normal")
+        self.move_button.config(state="disabled")
         self.update_player_positions()
 
 
